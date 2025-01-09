@@ -1,0 +1,17 @@
+mrpflask/
+├── app/
+│   ├── __init__.py
+│   ├── routes/
+│   │   ├── __init__.py
+│   │   ├── user_routes.py
+│   │   ├── product_routes.py
+│   │   ├── defect_routes.py
+│   ├── models/
+│   │   ├── __init__.py
+│   │   ├── db.py
+│   ├── utils/
+│   │   ├── __init__.py
+│   │   ├── helpers.py
+│   ├── config.py
+├── run.py
+
