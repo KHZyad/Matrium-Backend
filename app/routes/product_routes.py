@@ -51,7 +51,6 @@ def create_product():
 
         # Check if the product exists (based on productId, product_name, category, and supplier)
         existing_product = Product.query.filter_by(
-            product_id=data['product_id'],
             product_name=data['product_name'],
             category=data['category'],
             supplier=data['supplier']
@@ -86,7 +85,6 @@ def create_product():
             status = determine_status(qty_purchased)
 
             product = Product(
-                product_id=data['product_id'],
                 product_name=data['product_name'],
                 category=data['category'],
                 qty_purchased=qty_purchased,
