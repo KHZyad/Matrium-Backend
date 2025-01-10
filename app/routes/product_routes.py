@@ -19,7 +19,7 @@ def calculate_weighted_average(existing_qty, existing_price, new_qty, new_price)
     return ((existing_price * existing_qty) + (new_price * new_qty)) / (existing_qty + new_qty)
 
 def update_analytics():
-    """Update analytics values in the database."""
+    """Update analytics values."""
     low_stock_threshold = 10
 
     total_categories = db.session.query(Product.category).distinct().count()
@@ -28,7 +28,7 @@ def update_analytics():
     low_stock_items = db.session.query(Product).filter(Product.qty_purchased < low_stock_threshold).count()
     out_of_stock_items = db.session.query(Product).filter(Product.qty_purchased <= 0).count()
 
-    # Save analytics to a central place if needed, or log them for now
+    # Prepare analytics data
     analytics_data = {
         "total_categories": total_categories,
         "total_items": total_items,
@@ -36,30 +36,21 @@ def update_analytics():
         "low_stock_items": low_stock_items,
         "out_of_stock_items": out_of_stock_items,
     }
-
-    return jsonify(analytics_data), 200 
-    # Replace with logic to save analytics to the database if necessary.
+    return analytics_data
 
 # Get all products
 @product_bp.route('/getProduct', methods=['GET'])
 def get_products():
     try:
-        page = request.args.get('page', 1, type=int)
-        per_page = request.args.get('per_page', 10, type=int)
-        products = Product.query.paginate(page=page, per_page=per_page)
+        products = Product.query.all()
 
         # Update statuses dynamically
         product_list = []
-        for product in products.items:
+        for product in products:
             product.status = determine_status(product.qty_purchased)
             product_list.append(product.to_formatted_dict())
 
-        return jsonify({
-            "items": product_list,
-            "total": products.total,
-            "pages": products.pages,
-            "current_page": products.page
-        }), 200
+        return jsonify({"items": product_list}), 200
 
     except Exception as e:
         traceback.print_exc()
@@ -190,9 +181,8 @@ def delete_product():
 @product_bp.route('/analytics', methods=['GET'])
 def get_analytics():
     try:
-        # Call update_analytics to recalculate values
-        update_analytics()
-        return jsonify({"message": "Analytics recalculated successfully"}), 200
+        analytics_data = update_analytics()
+        return jsonify(analytics_data), 200
     except Exception as e:
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500
