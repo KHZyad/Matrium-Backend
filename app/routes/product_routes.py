@@ -18,40 +18,20 @@ def calculate_weighted_average(existing_qty, existing_price, new_qty, new_price)
         return 0  # Avoid division by zero
     return ((existing_price * existing_qty) + (new_price * new_qty)) / (existing_qty + new_qty)
 
-def update_analytics():
-    """Update analytics values."""
-    low_stock_threshold = 10
-
-    total_categories = db.session.query(Product.category).distinct().count()
-    total_items = db.session.query(Product).filter(Product.total_amount > 0).count()
-    total_item_cost = db.session.query(func.sum(Product.total_amount)).scalar() or 0
-    low_stock_items = db.session.query(Product).filter(Product.qty_purchased < low_stock_threshold).count()
-    out_of_stock_items = db.session.query(Product).filter(Product.qty_purchased <= 0).count()
-
-    # Prepare analytics data
-    analytics_data = {
-        "total_categories": total_categories,
-        "total_items": total_items,
-        "total_item_cost": total_item_cost,
-        "low_stock_items": low_stock_items,
-        "out_of_stock_items": out_of_stock_items,
-    }
-    return analytics_data
-
 # Get all products
 @product_bp.route('/getProduct', methods=['GET'])
 def get_products():
     try:
-        products = Product.query.all()
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 10, type=int)
+        products = Product.query.paginate(page=page, per_page=per_page)
 
-        # Update statuses dynamically
-        product_list = []
-        for product in products:
-            product.status = determine_status(product.qty_purchased)
-            product_list.append(product.to_formatted_dict())
-
-        return jsonify({"items": product_list}), 200
-
+        return jsonify({
+            "items": [product.to_formatted_dict() for product in products.items],
+            "total": products.total,
+            "pages": products.pages,
+            "current_page": products.page
+        }), 200
     except Exception as e:
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500
@@ -69,7 +49,7 @@ def create_product():
             if field not in data:
                 return jsonify({"error": f"Missing field: {field}"}), 400
 
-        # Check if the product exists
+        # Check if the product exists (based on productId, product_name, category, and supplier)
         existing_product = Product.query.filter_by(
             product_name=data['product_name'],
             category=data['category'],
@@ -92,15 +72,17 @@ def create_product():
             existing_product.qty_purchased = total_qty
             existing_product.unit_price = weighted_unit_price
             existing_product.total_amount = total_qty * weighted_unit_price
-            #existing_product.status = determine_status(total_qty)
+            existing_product.status = determine_status(total_qty)
 
             db.session.commit()
+            return jsonify({"message": "Product updated successfully"}), 200
+
         else:
             # Create new product
             qty_purchased = data['qty_purchased']
             unit_price = data['unit_price']
 
-           # status = determine_status(qty_purchased)
+            status = determine_status(qty_purchased)
 
             product = Product(
                 product_name=data['product_name'],
@@ -110,14 +92,11 @@ def create_product():
                 total_amount=qty_purchased * unit_price,
                 supplier=data['supplier'],
                 image=data.get('image'),
-                #status=status
+                status=status
             )
             db.session.add(product)
             db.session.commit()
-
-        # Update analytics
-        update_analytics()
-        return jsonify({"message": "Product created or updated successfully"}), 201
+            return jsonify({"message": "Product created successfully"}), 201
 
     except Exception as e:
         traceback.print_exc()
@@ -141,13 +120,10 @@ def update_product():
         product.unit_price = data['unit_price']
         product.total_amount = data['qty_purchased'] * data['unit_price']
         product.supplier = data['supplier']
-       # product.status = determine_status(data['qty_purchased'])
+        product.status = determine_status(data['qty_purchased'])
         product.image = data.get('image')
 
         db.session.commit()
-
-        # Update analytics
-        update_analytics()
         return jsonify({"message": "Product updated successfully"}), 200
 
     except Exception as e:
@@ -168,9 +144,6 @@ def delete_product():
 
         db.session.delete(product)
         db.session.commit()
-
-        # Update analytics
-        update_analytics()
         return jsonify({"message": "Product deleted successfully"}), 200
 
     except Exception as e:
@@ -181,8 +154,25 @@ def delete_product():
 @product_bp.route('/analytics', methods=['GET'])
 def get_analytics():
     try:
-        analytics_data = update_analytics()
-        return jsonify(analytics_data), 200
+        low_stock_threshold = 10
+
+        total_categories = db.session.query(Product.category).distinct().count()
+        total_items = db.session.query(Product).filter(Product.total_amount > 0).count()
+        total_item_cost = db.session.query(func.sum(Product.total_amount)).scalar() or 0
+        low_stock_items = db.session.query(Product).filter(Product.qty_purchased < low_stock_threshold).count()
+        out_of_stock_items = db.session.query(Product).filter(Product.qty_purchased <= 0).count()
+
+        return jsonify({
+            "total_categories": total_categories,
+            "total_items": total_items,
+            "total_item_cost": total_item_cost,
+            "low_stock_items": low_stock_items,
+            "out_of_stock_items": out_of_stock_items
+        }), 200
+
     except Exception as e:
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500
+
+
+
