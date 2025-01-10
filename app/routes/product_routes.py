@@ -43,64 +43,57 @@ def create_product():
             if field not in data:
                 return jsonify({"error": f"Missing field: {field}"}), 400
 
-        try:
-            # Check if the product exists (based on product_name, category, and supplier)
-            existing_product = Product.query.filter_by(
+        # Check if the product exists (based on product_name, category, and supplier)
+        existing_product = Product.query.filter_by(
+            product_name=data['product_name'],
+            category=data['category'],
+            supplier=data['supplier']
+        ).first()
+
+        if existing_product:
+            # Update existing product
+            new_qty = data['qty_purchased']
+            new_unit_price = data['unit_price']
+
+            total_qty = existing_product.qty_purchased + new_qty
+            weighted_unit_price = calculate_weighted_average(
+                existing_product.qty_purchased,
+                existing_product.unit_price,
+                new_qty,
+                new_unit_price
+            )
+
+            existing_product.qty_purchased = total_qty
+            existing_product.unit_price = weighted_unit_price
+            existing_product.total_amount = total_qty * weighted_unit_price
+            # No need to set status explicitly; it's auto-generated
+
+            db.session.commit()
+            return jsonify({"message": "Product updated successfully"}), 200
+
+        else:
+            # Create new product
+            qty_purchased = data['qty_purchased']
+            unit_price = data['unit_price']
+
+            product = Product(
                 product_name=data['product_name'],
                 category=data['category'],
-                supplier=data['supplier']
-            ).first()
-
-            if existing_product:
-                # Update existing product
-                new_qty = data['qty_purchased']
-                new_unit_price = data['unit_price']
-
-                total_qty = existing_product.qty_purchased + new_qty
-                weighted_unit_price = calculate_weighted_average(
-                    existing_product.qty_purchased,
-                    existing_product.unit_price,
-                    new_qty,
-                    new_unit_price
-                )
-
-                existing_product.qty_purchased = total_qty
-                existing_product.unit_price = weighted_unit_price
-                existing_product.total_amount = total_qty * weighted_unit_price
-                # No need to manually update status here, DB will handle it automatically
-
-                db.session.commit()
-                return jsonify({"message": "Product updated successfully"}), 200
-
-            else:
-                # Create new product
-                qty_purchased = data['qty_purchased']
-                unit_price = data['unit_price']
-
-                product = Product(
-                    product_name=data['product_name'],
-                    category=data['category'],
-                    qty_purchased=qty_purchased,
-                    unit_price=unit_price,
-                    total_amount=qty_purchased * unit_price,
-                    supplier=data['supplier'],
-                    #image=data.get('image')
-                    # No need to manually set status here
-                )
-                db.session.add(product)
-                db.session.commit()
-                return jsonify({"message": "Product created successfully"}), 201
-
-        except Exception as e:
-            traceback.print_exc()  # Log the exception
-            return jsonify({"error": "Error while processing product creation"}), 500
+                qty_purchased=qty_purchased,
+                unit_price=unit_price,
+                total_amount=qty_purchased * unit_price,
+                supplier=data['supplier'],
+                image=data.get('image')  # Optional
+                # No need to set status explicitly; it's auto-generated
+            )
+            db.session.add(product)
+            db.session.commit()
+            return jsonify({"message": "Product created successfully"}), 201
 
     except Exception as e:
-        traceback.print_exc()
-        return jsonify({"error": f"Unexpected error: {str(e)}"}), 500
+        traceback.print_exc()  # Log the exception
+        return jsonify({"error": "Error while processing product creation", "details": str(e)}), 500
 
-# Update a product
-@product_bp.route('/updateProduct', methods=['PUT'])
 def update_product():
     try:
         if not request.is_json:
