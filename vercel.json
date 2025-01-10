@@ -15,7 +15,4 @@
       "dest": "run.py"
     }
   ],
-  "scripts": {
-    "postinstall": "pip install pymysql"
-  }
 }
