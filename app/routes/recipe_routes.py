@@ -1,8 +1,8 @@
 from flask import Blueprint, jsonify, request
 from app.models.db import db
 from app.models.user import User  # Assuming you have a User model for created_by
-from app.models.recipe import Recipe # Create these models for recipes and ingredients
-from app.models.recupe_ingredients import RecipeIngredient
+from app.models.recipe import Recipe
+from app.models.recipe_ingredients import RecipeIngredient
 from app.models.product import Product
 
 recipe_routes = Blueprint('recipes', __name__)
@@ -13,24 +13,37 @@ def get_recipes():
         # Fetch all recipes
         recipes = db.session.query(Recipe).join(User).order_by(Recipe.created_at.desc()).all()
         result = []
-        
+
         for recipe in recipes:
             # Fetch ingredients for each recipe
-            ingredients = db.session.query(RecipeIngredient).join(Product).filter(RecipeIngredient.recipe_id == recipe.recipe_id).all()
-            ingredients_list = [
-                {
-                    "ingredient_name": ingredient.product.product_name,
-                    "quantity": ingredient.quantity
-                }
-                for ingredient in ingredients
-            ]
+            ingredients = (
+                db.session.query(RecipeIngredient, Product)
+                .join(Product, RecipeIngredient.product_id == Product.product_id)
+                .filter(RecipeIngredient.recipe_id == recipe.recipe_id)
+                .all()
+            )
+            ingredients_list = []
+            total_price = 0
+
+            for ingredient, product in ingredients:
+                ingredient_price = ingredient.quantity * product.unit_price
+                total_price += ingredient_price
+                ingredients_list.append({
+                    "name": product.product_name,
+                    "quantity": ingredient.quantity,
+                    "unit": product.category,  # Assuming the product category corresponds to the unit
+                    "price": ingredient_price
+                })
+
             result.append({
-                "recipe_id": recipe.recipe_id,
-                "recipe_name": recipe.name,
-                "description": recipe.description,
-                "created_at": recipe.created_at,
-                "created_by": recipe.user.username,
-                "ingredients": ingredients_list
+                "id": recipe.recipe_id,
+                "name": recipe.name,
+                "productName": "Recipe Product",  # Add logic if this maps to something in your database
+                "category": "Recipe Category",  # Add logic if this maps to something in your database
+                "type": "variable",  # Assuming this is static for now
+                "ingredients": ingredients_list,
+                "totalPrice": total_price,
+                "dateCreated": recipe.created_at.strftime('%Y-%m-%d')
             })
 
         return jsonify({"status": "success", "data": result})
@@ -45,7 +58,7 @@ def add_recipe():
         name = data.get('name')
         description = data.get('description')
         created_by = data.get('created_by')
-        ingredients = data.get('ingredients')  # Get the list of ingredients from the request body
+        ingredients = data.get('ingredients')  # List of ingredients from the request body
 
         if not name or not description or not created_by or not ingredients:
             return jsonify({"error": "Missing required fields."}), 400
@@ -64,7 +77,9 @@ def add_recipe():
                 return jsonify({"error": "Missing ingredient fields."}), 400
 
             # Create new RecipeIngredient for each ingredient
-            new_recipe_ingredient = RecipeIngredient(recipe_id=new_recipe.recipe_id, product_id=product_id, quantity=quantity)
+            new_recipe_ingredient = RecipeIngredient(
+                recipe_id=new_recipe.recipe_id, product_id=product_id, quantity=quantity
+            )
             db.session.add(new_recipe_ingredient)
 
         db.session.commit()
