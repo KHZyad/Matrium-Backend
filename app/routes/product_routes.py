@@ -8,7 +8,8 @@ product_bp = Blueprint('product', __name__)
 @product_bp.route('/getProduct', methods=['GET'])
 def get_products():
     products = Product.query.all()
-    return jsonify([product.to_dict() for product in products]), 200
+    return jsonify([product.to_formatted_dict() for product in products]), 200
+
 
 # Create a product
 @product_bp.route('/createProduct', methods=['POST'])
