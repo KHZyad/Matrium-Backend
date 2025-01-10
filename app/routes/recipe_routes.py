@@ -37,9 +37,7 @@ def get_recipes():
             result.append({
                 "id": recipe.recipe_id,
                 "name": recipe.name,
-                "productName": "Recipe Product",
-                "category": "Recipe Category",
-                "type": "variable",
+                "description": recipe.description,
                 "ingredients": ingredients_list,
                 "totalPrice": total_price,
                 "dateCreated": recipe.created_at.strftime('%Y-%m-%d')
@@ -55,11 +53,14 @@ def add_recipe():
     try:
         data = request.json
         name = data.get('name')
-        description = data.get('productName')  # Assuming this maps to description
-        created_by = 1  # Assuming the user ID is 1, adjust as necessary
+        description = data.get('description')
+        created_by = data.get('created_by')
         ingredients = data.get('ingredients')
+        product_name = data.get('productName')
+        category = data.get('category')
+        total_price = data.get('totalPrice')
 
-        if not name or not description or not ingredients:
+        if not name or not description or not created_by or not ingredients:
             return jsonify({"error": "Missing required fields."}), 400
 
         new_recipe = Recipe(name=name, description=description, created_by=created_by)
@@ -67,20 +68,26 @@ def add_recipe():
         db.session.commit()
 
         for ingredient in ingredients:
-            product_name = ingredient.get('name')
+            product_id = ingredient.get('product_id')
             quantity = ingredient.get('quantity')
-            price = ingredient.get('price')
 
-            product = db.session.query(Product).filter_by(product_name=product_name).first()
-            if not product:
-                return jsonify({"error": f"Product {product_name} not found."}), 404
+            if not product_id or not quantity:
+                return jsonify({"error": "Missing ingredient fields."}), 400
 
             new_recipe_ingredient = RecipeIngredient(
-                recipe_id=new_recipe.recipe_id,
-                product_id=product.product_id,
-                quantity=quantity
+                recipe_id=new_recipe.recipe_id, product_id=product_id, quantity=quantity
             )
             db.session.add(new_recipe_ingredient)
+
+        # Add the new product to the Product table
+        new_product = Product(
+            product_name=product_name,
+            category=category,
+            unit_price=total_price,
+            supplier="The Factory",  # Default supplier
+            quantity=0  # Initial quantity for the new product
+        )
+        db.session.add(new_product)
 
         db.session.commit()
 
@@ -107,35 +114,41 @@ def delete_recipe(recipe_id):
         db.session.rollback()
         return jsonify({"error": str(e)}), 500
 
-# Route to use a recipe and update stock
+# Route to use a recipe
 @recipe_routes.route('/useRecipe/<int:recipe_id>', methods=['POST'])
 def use_recipe(recipe_id):
     try:
+        quantity_to_produce = request.json.get('quantity', 1)
+        
         recipe = db.session.query(Recipe).filter_by(recipe_id=recipe_id).first()
         if not recipe:
             return jsonify({"error": "Recipe not found."}), 404
 
-        ingredients = db.session.query(RecipeIngredient).filter_by(recipe_id=recipe_id).all()
-        total_price = 0
+        ingredients = (
+            db.session.query(RecipeIngredient, Product)
+            .join(Product, RecipeIngredient.product_id == Product.product_id)
+            .filter(RecipeIngredient.recipe_id == recipe_id)
+            .all()
+        )
 
-        for ingredient in ingredients:
-            product = db.session.query(Product).filter_by(product_id=ingredient.product_id).first()
-            if product.quantity < ingredient.quantity:
-                return jsonify({"error": f"Not enough stock for product {product.product_name}."}), 400
-
-            product.quantity -= ingredient.quantity
-            total_price += ingredient.quantity * product.unit_price
+        for ingredient, product in ingredients:
+            if product.quantity < ingredient.quantity * quantity_to_produce:
+                return jsonify({"error": f"Not enough {product.product_name} in stock."}), 400
+            product.quantity -= ingredient.quantity * quantity_to_produce
+            db.session.add(product)
 
         new_product = Product(
             product_name=recipe.name,
-            unit_price=total_price,
-            quantity=1,
-            supplier="The Factory"
+            category=recipe.description,
+            unit_price=sum([i.quantity * p.unit_price for i, p in ingredients]),
+            supplier="The Factory",
+            quantity=quantity_to_produce
         )
         db.session.add(new_product)
+
         db.session.commit()
 
-        return jsonify({"message": "Recipe used successfully, new product added.", "new_product_id": new_product.product_id})
+        return jsonify({"message": "Recipe used successfully, product created.", "product_id": new_product.product_id})
     except Exception as e:
         db.session.rollback()
         return jsonify({"error": str(e)}), 500
