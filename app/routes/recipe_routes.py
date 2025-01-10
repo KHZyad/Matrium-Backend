@@ -3,9 +3,84 @@ from app.models.db import db
 from app.models.recipe import Recipe
 from app.models.recipe_ingredients import RecipeIngredient
 from app.models.product import Product
-from datetime import datetime, timezone
+from datetime import datetime
 
 recipe_routes = Blueprint('recipes', __name__)
+
+def validate_recipe_data(data):
+    """Validate the incoming recipe data."""
+    required_fields = ['name', 'productName', 'type', 'ingredients']
+    for field in required_fields:
+        if not data.get(field):
+            return False, f"Missing required field: {field}"
+    return True, None
+
+def create_recipe(name, description, date_created):
+    """Create a new Recipe instance."""
+    return Recipe(
+        name=name,
+        description=description,
+        created_at=datetime.strptime(date_created, '%Y-%m-%d')
+    )
+
+def create_recipe_ingredient(recipe_id, ingredient_data):
+    """Create a new RecipeIngredient instance."""
+    return RecipeIngredient(
+        recipe_id=recipe_id,
+        product_id=ingredient_data['stockId'],
+        quantity=float(ingredient_data['quantity'])
+    )
+
+def calculate_total_price_and_quantity(ingredients):
+    """Calculate the total price and total quantity of ingredients."""
+    total_price = sum(float(ing['price']) for ing in ingredients)
+    total_quantity = sum(float(ing['quantity']) for ing in ingredients)
+    return total_price, total_quantity
+
+def create_final_product(product_name, unit_price):
+    """Create a new Product instance for the final product."""
+    return Product(
+        product_name=product_name,
+        category="Final Material",
+        unit_price=unit_price,
+        supplier="The Factory",
+        quantity=0  # Initial quantity for the new product
+    )
+
+@recipe_routes.route('/addRecipe', methods=['POST'])
+def add_recipe():
+    try:
+        data = request.json
+        is_valid, error_message = validate_recipe_data(data)
+        if not is_valid:
+            return jsonify({"error": error_message}), 400
+
+        name = data['name']
+        product_name = data['productName']
+        recipe_type = data['type']
+        ingredients = data['ingredients']
+        date_created = data.get('dateCreated', datetime.utcnow().strftime('%Y-%m-%d'))
+
+        new_recipe = create_recipe(name, recipe_type, date_created)
+        db.session.add(new_recipe)
+        db.session.commit()  # Commit to get the recipe_id
+
+        for ingredient in ingredients:
+            new_recipe_ingredient = create_recipe_ingredient(new_recipe.recipe_id, ingredient)
+            db.session.add(new_recipe_ingredient)
+
+        total_price, total_quantity = calculate_total_price_and_quantity(ingredients)
+        unit_price = total_price / total_quantity if total_quantity else 0
+        final_product = create_final_product(product_name, unit_price)
+        db.session.add(final_product)
+
+        db.session.commit()
+
+        return jsonify({"message": "Recipe added successfully.", "recipe_id": new_recipe.recipe_id})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
+
 
 # Route to fetch all recipes
 @recipe_routes.route('/getRecipes', methods=['GET'])
@@ -47,54 +122,6 @@ def get_recipes():
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
 
-# Route to add a new recipe
-@recipe_routes.route('/addRecipe', methods=['POST'])
-def add_recipe():
-    try:
-        data = request.json
-        name = data.get('name')
-        description = data.get('description')
-        created_by = data.get('created_by')
-        ingredients = data.get('ingredients')
-        product_name = data.get('productName')
-        category = data.get('category')
-        total_price = data.get('totalPrice')
-
-        if not name or not description or not created_by or not ingredients:
-            return jsonify({"error": "Missing required fields."}), 400
-
-        new_recipe = Recipe(name=name, description=description, created_by=created_by)
-        db.session.add(new_recipe)
-        db.session.commit()
-
-        for ingredient in ingredients:
-            product_id = ingredient.get('product_id')
-            quantity = ingredient.get('quantity')
-
-            if not product_id or not quantity:
-                return jsonify({"error": "Missing ingredient fields."}), 400
-
-            new_recipe_ingredient = RecipeIngredient(
-                recipe_id=new_recipe.recipe_id, product_id=product_id, quantity=quantity
-            )
-            db.session.add(new_recipe_ingredient)
-
-        # Add the new product to the Product table
-        new_product = Product(
-            product_name=product_name,
-            category=category,
-            unit_price=total_price,
-            supplier="The Factory",  # Default supplier
-            quantity=0  # Initial quantity for the new product
-        )
-        db.session.add(new_product)
-
-        db.session.commit()
-
-        return jsonify({"message": "Recipe added successfully.", "recipe_id": new_recipe.recipe_id})
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({"error": str(e)}), 500
 
 # Route to delete a recipe
 @recipe_routes.route('/deleteRecipe/<int:recipe_id>', methods=['DELETE'])
