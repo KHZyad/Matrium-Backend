@@ -6,13 +6,6 @@ import traceback
 
 product_bp = Blueprint('product', __name__)
 
-def determine_status(qty_purchased):
-    if qty_purchased == 0:
-        return "Out of stock"
-    elif qty_purchased <= 10:
-        return "Low in stock"
-    return "Available"
-
 def calculate_weighted_average(existing_qty, existing_price, new_qty, new_price):
     if existing_qty + new_qty == 0:
         return 0  # Avoid division by zero
@@ -74,7 +67,7 @@ def create_product():
                 existing_product.qty_purchased = total_qty
                 existing_product.unit_price = weighted_unit_price
                 existing_product.total_amount = total_qty * weighted_unit_price
-                existing_product.status = determine_status(total_qty)
+                # No need to manually update status here, DB will handle it automatically
 
                 db.session.commit()
                 return jsonify({"message": "Product updated successfully"}), 200
@@ -84,8 +77,6 @@ def create_product():
                 qty_purchased = data['qty_purchased']
                 unit_price = data['unit_price']
 
-                status = determine_status(qty_purchased)
-
                 product = Product(
                     product_name=data['product_name'],
                     category=data['category'],
@@ -93,8 +84,8 @@ def create_product():
                     unit_price=unit_price,
                     total_amount=qty_purchased * unit_price,
                     supplier=data['supplier'],
-                    image=data.get('image'),
-                    status=status
+                    image=data.get('image')
+                    # No need to manually set status here
                 )
                 db.session.add(product)
                 db.session.commit()
@@ -108,7 +99,8 @@ def create_product():
         traceback.print_exc()
         return jsonify({"error": f"Unexpected error: {str(e)}"}), 500
 
- 
+# Update a product
+@product_bp.route('/updateProduct', methods=['PUT'])
 def update_product():
     try:
         if not request.is_json:
@@ -125,31 +117,11 @@ def update_product():
         product.unit_price = data['unit_price']
         product.total_amount = data['qty_purchased'] * data['unit_price']
         product.supplier = data['supplier']
-        product.status = determine_status(data['qty_purchased'])
         product.image = data.get('image')
+        # No need to manually set status here
 
         db.session.commit()
         return jsonify({"message": "Product updated successfully"}), 200
-
-    except Exception as e:
-        traceback.print_exc()
-        return jsonify({"error": str(e)}), 500
-
-# Delete a product
-@product_bp.route('/deleteProduct', methods=['DELETE'])
-def delete_product():
-    try:
-        if not request.is_json:
-            return jsonify({"error": "Invalid JSON payload"}), 400
-
-        data = request.json
-        product = Product.query.get(data['product_id'])
-        if not product:
-            return jsonify({"message": "Product not found"}), 404
-
-        db.session.delete(product)
-        db.session.commit()
-        return jsonify({"message": "Product deleted successfully"}), 200
 
     except Exception as e:
         traceback.print_exc()
@@ -178,6 +150,3 @@ def get_analytics():
     except Exception as e:
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500
-
-
-
