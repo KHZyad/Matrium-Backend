@@ -37,7 +37,7 @@ def update_analytics():
         "out_of_stock_items": out_of_stock_items,
     }
 
-    print("Analytics updated:", analytics_data)
+    return jsonify(analytics_data), 200 
     # Replace with logic to save analytics to the database if necessary.
 
 # Get all products
