@@ -63,15 +63,12 @@ def delete_product():
 @product_bp.route('/analytics', methods=['GET'])
 def get_analytics():
     try:
-        # Define your thresholds
-        low_stock_threshold = 10  # Example: Products with qty_purchased < 10 are considered low in stock
+        low_stock_threshold = 10
 
-        # Total categories with more than last year (assuming you have a comparison mechanism)
-        total_categories_more_than_last_year = db.session.query(Product.category).filter(
-            Product.total_amount > Product.last_year_amount  # Assuming you track `last_year_amount`
-        ).distinct().count()
+        # Total unique categories
+        total_categories = db.session.query(Product.category).distinct().count()
 
-        # Total items with positive total_amount
+        # Total items (products with total_amount > 0)
         total_items = db.session.query(Product).filter(Product.total_amount > 0).count()
 
         # Total item cost
@@ -84,7 +81,7 @@ def get_analytics():
         out_of_stock_items = db.session.query(Product).filter(Product.qty_purchased <= 0).count()
 
         return jsonify({
-            "categories_more_than_last_year": total_categories_more_than_last_year,
+            "total_categories": total_categories,
             "total_items": total_items,
             "total_item_cost": total_item_cost,
             "low_stock_items": low_stock_items,
@@ -92,5 +89,6 @@ def get_analytics():
         }), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
 
 
