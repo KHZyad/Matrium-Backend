@@ -5,7 +5,7 @@
       "src": "run.py",
       "use": "@vercel/python",
       "config": {
-        "runtime": "python3.9"  // Specify Python version
+        "runtime": "python3.9"
       }
     }
   ],
@@ -16,6 +16,6 @@
     }
   ],
   "scripts": {
-    "postinstall": "pip install pymysql"  // Ensures pymysql is installed
+    "postinstall": "pip install pymysql"
   }
 }
