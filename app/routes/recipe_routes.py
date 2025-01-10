@@ -87,3 +87,22 @@ def add_recipe():
         return jsonify({"message": "Recipe added successfully.", "recipe_id": new_recipe.recipe_id})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+# Route to delete a recipe
+@recipe_routes.route('/deleteRecipe/<int:recipe_id>', methods=['DELETE'])
+def delete_recipe(recipe_id):
+    try:
+        recipe = db.session.query(Recipe).filter_by(recipe_id=recipe_id).first()
+        
+        if not recipe:
+            return jsonify({"error": "Recipe not found."}), 404
+
+        db.session.query(RecipeIngredient).filter_by(recipe_id=recipe_id).delete()
+        db.session.delete(recipe)
+        db.session.commit()
+
+        return jsonify({"message": "Recipe deleted successfully."}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
+
