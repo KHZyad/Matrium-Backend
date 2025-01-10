@@ -1,6 +1,7 @@
 from flask import Blueprint, request, jsonify
 from app.models.product import Product
 from app.models.db import db
+from sqlalchemy import func
 
 product_bp = Blueprint('product', __name__)
 
@@ -59,3 +60,37 @@ def delete_product():
     db.session.delete(product)
     db.session.commit()
     return jsonify({"message": "Product deleted successfully"}), 200
+@product_bp.route('/analytics', methods=['GET'])
+def get_analytics():
+    try:
+        # Define your thresholds
+        low_stock_threshold = 10  # Example: Products with qty_purchased < 10 are considered low in stock
+
+        # Total categories with more than last year (assuming you have a comparison mechanism)
+        total_categories_more_than_last_year = db.session.query(Product.category).filter(
+            Product.total_amount > Product.last_year_amount  # Assuming you track `last_year_amount`
+        ).distinct().count()
+
+        # Total items with positive total_amount
+        total_items = db.session.query(Product).filter(Product.total_amount > 0).count()
+
+        # Total item cost
+        total_item_cost = db.session.query(func.sum(Product.total_amount)).scalar() or 0
+
+        # Low stock items
+        low_stock_items = db.session.query(Product).filter(Product.qty_purchased < low_stock_threshold).count()
+
+        # Out of stock items
+        out_of_stock_items = db.session.query(Product).filter(Product.qty_purchased <= 0).count()
+
+        return jsonify({
+            "categories_more_than_last_year": total_categories_more_than_last_year,
+            "total_items": total_items,
+            "total_item_cost": total_item_cost,
+            "low_stock_items": low_stock_items,
+            "out_of_stock_items": out_of_stock_items
+        }), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
