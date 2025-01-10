@@ -12,19 +12,14 @@ def calculate_weighted_average(existing_qty, existing_price, new_qty, new_price)
         return 0  # Avoid division by zero
     return ((existing_price * existing_qty) + (new_price * new_qty)) / (existing_qty + new_qty)
 
-# Endpoint to retrieve all products with pagination
+# Endpoint to retrieve all products
 @product_bp.route('/getProduct', methods=['GET'])
 def get_products():
     try:
-        page = request.args.get('page', 1, type=int)
-        per_page = request.args.get('per_page', 10, type=int)
-        products = Product.query.paginate(page=page, per_page=per_page)
-
+        # Retrieve all products from the database
+        products = Product.query.all()
         return jsonify({
-            "items": [product.to_formatted_dict() for product in products.items],
-            "total": products.total,
-            "pages": products.pages,
-            "current_page": products.page
+            "items": [product.to_formatted_dict() for product in products]
         }), 200
     except Exception as e:
         traceback.print_exc()
