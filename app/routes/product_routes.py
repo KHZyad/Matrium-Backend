@@ -84,7 +84,7 @@ def create_product():
                     unit_price=unit_price,
                     total_amount=qty_purchased * unit_price,
                     supplier=data['supplier'],
-                    image=data.get('image')
+                    #image=data.get('image')
                     # No need to manually set status here
                 )
                 db.session.add(product)
