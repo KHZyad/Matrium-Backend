@@ -92,7 +92,7 @@ def create_product():
             existing_product.qty_purchased = total_qty
             existing_product.unit_price = weighted_unit_price
             existing_product.total_amount = total_qty * weighted_unit_price
-            existing_product.status = determine_status(total_qty)
+            #existing_product.status = determine_status(total_qty)
 
             db.session.commit()
         else:
@@ -100,7 +100,7 @@ def create_product():
             qty_purchased = data['qty_purchased']
             unit_price = data['unit_price']
 
-            status = determine_status(qty_purchased)
+           # status = determine_status(qty_purchased)
 
             product = Product(
                 product_name=data['product_name'],
@@ -110,7 +110,7 @@ def create_product():
                 total_amount=qty_purchased * unit_price,
                 supplier=data['supplier'],
                 image=data.get('image'),
-                status=status
+                #status=status
             )
             db.session.add(product)
             db.session.commit()
@@ -141,7 +141,7 @@ def update_product():
         product.unit_price = data['unit_price']
         product.total_amount = data['qty_purchased'] * data['unit_price']
         product.supplier = data['supplier']
-        product.status = determine_status(data['qty_purchased'])
+       # product.status = determine_status(data['qty_purchased'])
         product.image = data.get('image')
 
         db.session.commit()
