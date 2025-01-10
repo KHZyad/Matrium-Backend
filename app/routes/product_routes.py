@@ -44,7 +44,7 @@ def create_product():
             return jsonify({"error": "Invalid JSON payload"}), 400
 
         data = request.json
-        required_fields = ['product_id', 'product_name', 'category', 'qty_purchased', 'unit_price', 'supplier']
+        required_fields = ['product_name', 'category', 'qty_purchased', 'unit_price', 'supplier']
         for field in required_fields:
             if field not in data:
                 return jsonify({"error": f"Missing field: {field}"}), 400
