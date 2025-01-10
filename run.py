@@ -1,11 +1,12 @@
 from flask import Flask
 from flask_cors import CORS
-from app.models.db import db, init_db  # Import init_db and db from models
+from app.models.db import db, init_db 
 from app.routes.recipe_routes import recipe_routes
 from app.routes import product_routes
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, resources={r"/*": {"origins": "*"}}) 
+
 
 app.config['SQLALCHEMY_DATABASE_URI'] = ('mysql+pymysql://avnadmin:AVNS_64D7XhVDVS5mweyqAHs@mysql-615390b-matrium-24.h.aivencloud.com:21017/mrp' )
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False  
