@@ -101,6 +101,30 @@ def create_product():
         traceback.print_exc()  # Log the exception
         return jsonify({"error": "Error while processing product creation", "details": str(e)}), 500
 
+# Endpoint to get analytics data
+@product_bp.route('/analytics', methods=['GET'])
+def get_analytics():
+    try:
+        low_stock_threshold = 10
+
+        total_categories = db.session.query(Product.category).distinct().count()
+        total_items = db.session.query(Product).filter(Product.total_amount > 0).count()
+        total_item_cost = db.session.query(func.sum(Product.total_amount)).scalar() or 0
+        low_stock_items = db.session.query(Product).filter(Product.qty_purchased < low_stock_threshold).count()
+        out_of_stock_items = db.session.query(Product).filter(Product.qty_purchased <= 0).count()
+
+        return jsonify({
+            "total_categories": total_categories,
+            "total_items": total_items,
+            "total_item_cost": total_item_cost,
+            "low_stock_items": low_stock_items,
+            "out_of_stock_items": out_of_stock_items
+        }), 200
+
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+
 # Endpoint to get stock updates
 @product_bp.route('/stockUpdates', methods=['GET'])
 def get_stock_updates():
