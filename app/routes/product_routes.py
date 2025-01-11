@@ -32,7 +32,7 @@ def get_products():
         }), 200
     except Exception as e:
         traceback.print_exc()
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": "An error occurred while retrieving products."}), 500
 
 # Endpoint to create or update a product
 @product_bp.route('/createProduct', methods=['POST'])
@@ -101,61 +101,7 @@ def create_product():
         traceback.print_exc()  # Log the exception
         return jsonify({"error": "Error while processing product creation", "details": str(e)}), 500
 
-# Endpoint to update a product
-@product_bp.route('/updateProduct', methods=['PUT'])
-def update_product():
-    try:
-        if not request.is_json:
-            return jsonify({"error": "Invalid JSON payload"}), 400
-
-        data = request.json
-        product = Product.query.get(data['product_id'])
-        if not product:
-            return jsonify({"message": "Product not found"}), 404
-
-        product.product_name = data['product_name']
-        product.category = data['category']
-        product.qty_purchased = data['qty_purchased']
-        product.unit_price = data['unit_price']
-        product.total_amount = data['qty_purchased'] * data['unit_price']
-        product.supplier = data['supplier']
-        product.image = data.get('image')
-
-        # Update status based on new quantity
-        product.status = decide_status(data['qty_purchased'])
-
-        db.session.commit()
-        return jsonify({"message": "Product updated successfully"}), 200
-
-    except Exception as e:
-        traceback.print_exc()
-        return jsonify({"error": str(e)}), 500
-
-# Endpoint to get analytics data
-@product_bp.route('/analytics', methods=['GET'])
-def get_analytics():
-    try:
-        low_stock_threshold = 10
-
-        total_categories = db.session.query(Product.category).distinct().count()
-        total_items = db.session.query(Product).filter(Product.total_amount > 0).count()
-        total_item_cost = db.session.query(func.sum(Product.total_amount)).scalar() or 0
-        low_stock_items = db.session.query(Product).filter(Product.qty_purchased < low_stock_threshold).count()
-        out_of_stock_items = db.session.query(Product).filter(Product.qty_purchased <= 0).count()
-
-        return jsonify({
-            "total_categories": total_categories,
-            "total_items": total_items,
-            "total_item_cost": total_item_cost,
-            "low_stock_items": low_stock_items,
-            "out_of_stock_items": out_of_stock_items
-        }), 200
-
-    except Exception as e:
-        traceback.print_exc()
-        return jsonify({"error": str(e)}), 500
-
-# Endpoint to get stock levels for a bar chart
+# Endpoint to get stock updates
 @product_bp.route('/stockUpdates', methods=['GET'])
 def get_stock_updates():
     try:
@@ -166,7 +112,6 @@ def get_stock_updates():
         labels = [product.product_name for product in products]
         stock_levels = [product.qty_purchased for product in products]
 
-        # Return the data in the required format
         return jsonify({
             "stockUpdates": {
                 "labels": labels,
@@ -178,27 +123,21 @@ def get_stock_updates():
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500
 
-# New endpoint to get financial data for a line chart (revenue vs expenses)
+# Financial analytics endpoint
 @product_bp.route('/finances', methods=['GET'])
 def get_financial_data():
     try:
-        # Define the months (labels)
+        # Define the months
         months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
-
-        # Initialize empty lists for revenue and expenses data
         expense_data = []
 
-        # Query revenue and expenses for each month
+        # Query expenses for each month
         for month in range(1, 13):
-            
-            # Get total expenses for the current month (replace with actual table and column logic)
-            expenses = db.session.query(func.sum(Product.unit_price * Product.qty_purchased)).filter(
-                func.extract('month', Product.last_updated) == month
-            ).scalar() or 0
-
+            expenses = db.session.query(
+                func.sum(Product.unit_price * Product.qty_purchased)
+            ).filter(func.extract('month', Product.last_updated) == month).scalar() or 0
             expense_data.append(expenses)
 
-        # Return the financial data
         return jsonify({
             "finances": {
                 "labels": months,
@@ -207,8 +146,5 @@ def get_financial_data():
         }), 200
 
     except Exception as e:
-        # Return error details to help debug
-        return jsonify({
-            "error": "An error occurred while processing financial data.",
-            "details": str(e)
-        }), 500
+        traceback.print_exc()
+        return jsonify({"error": "Error processing financial data.", "details": str(e)}), 500
