@@ -1,29 +1,31 @@
-
 from flask import Blueprint, jsonify, request
 from app.models.db import db
 from app.models.recipe import Recipe
 from app.models.recipe_ingredients import RecipeIngredient
 from app.models.product import Product
 from datetime import datetime
+import traceback
 
+# Define the Blueprint
 recipe_routes = Blueprint('recipes', __name__)
 
+# Helper functions
 def validate_recipe_data(data):
     """Validate the incoming recipe data."""
-    required_fields = ['name', 'productName', 'type', 'ingredients']
+    required_fields = ['name', 'productName', 'type', 'ingredients', 'totalPrice', 'category']
     for field in required_fields:
         if not data.get(field):
             return False, f"Missing required field: {field}"
     return True, None
 
-def create_recipe(name, recipe_type, date_created, created_by):
+def create_recipe(name, recipe_type, product_name, date_created):
     """Create a new Recipe instance."""
     return Recipe(
         name=name,
         type=recipe_type,
-        product_name=name,  # Assuming product_name is same as recipe name
-        created_at=datetime.strptime(date_created, '%Y-%m-%d'),
-        created_by=created_by
+        product_name=product_name,
+        total_price=0.0,
+        created_at=datetime.strptime(date_created, '%Y-%m-%d')
     )
 
 def create_recipe_ingredient(recipe_id, ingredient_data):
@@ -40,19 +42,20 @@ def calculate_total_price_and_quantity(ingredients):
     total_quantity = sum(float(ing['quantity']) for ing in ingredients)
     return total_price, total_quantity
 
-def create_final_product(product_name, unit_price, total_price, supplier):
+def create_final_product(product_name, unit_price, total_price, category):
     """Create a new Product instance for the final product."""
     return Product(
         product_name=product_name,
-        category="Final Material",
+        category=category,
         qty_purchased=0,  # Default to 0 for the final product
         unit_price=unit_price,
         total_amount=total_price,
-        supplier=supplier,
+        supplier="The Factory",
         status="Available",
         image=None
     )
 
+# Routes
 @recipe_routes.route('/addRecipe', methods=['POST'])
 def add_recipe():
     try:
@@ -66,10 +69,10 @@ def add_recipe():
         recipe_type = data['type']
         ingredients = data['ingredients']
         date_created = data.get('dateCreated', datetime.utcnow().strftime('%Y-%m-%d'))
-        created_by = data.get('createdBy', 1)  # Default to user_id 1 for now
+        category = data['category']
 
         # Create the recipe
-        new_recipe = create_recipe(name, recipe_type, date_created, created_by)
+        new_recipe = create_recipe(name, recipe_type, product_name, date_created)
         db.session.add(new_recipe)
         db.session.commit()  # Commit to get the recipe_id
 
@@ -81,7 +84,7 @@ def add_recipe():
         # Calculate total price and create the final product
         total_price, total_quantity = calculate_total_price_and_quantity(ingredients)
         unit_price = total_price / total_quantity if total_quantity else 0
-        final_product = create_final_product(product_name, unit_price, total_price, "The Factory")
+        final_product = create_final_product(product_name, unit_price, total_price, category)
         db.session.add(final_product)
 
         db.session.commit()
@@ -89,6 +92,7 @@ def add_recipe():
         return jsonify({"status": "success", "message": "Recipe added successfully.", "recipe_id": new_recipe.recipe_id}), 201
     except Exception as e:
         db.session.rollback()
+        traceback.print_exc()
         return jsonify({"status": "error", "message": str(e)}), 500
 
 @recipe_routes.route('/getRecipes', methods=['GET'])
@@ -128,6 +132,7 @@ def get_recipes():
 
         return jsonify({"status": "success", "data": result}), 200
     except Exception as e:
+        traceback.print_exc()
         return jsonify({"status": "error", "message": str(e)}), 500
 
 @recipe_routes.route('/deleteRecipe/<int:recipe_id>', methods=['DELETE'])
@@ -145,6 +150,7 @@ def delete_recipe(recipe_id):
         return jsonify({"status": "success", "message": "Recipe deleted successfully."}), 200
     except Exception as e:
         db.session.rollback()
+        traceback.print_exc()
         return jsonify({"status": "error", "message": str(e)}), 500
 
 @recipe_routes.route('/useRecipe/<int:recipe_id>', methods=['POST'])
@@ -195,4 +201,5 @@ def use_recipe(recipe_id):
         }), 200
     except Exception as e:
         db.session.rollback()
+        traceback.print_exc()
         return jsonify({"status": "error", "message": str(e)}), 500
