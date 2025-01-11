@@ -3,7 +3,6 @@ from app.models.product import Product
 from app.models.db import db
 from sqlalchemy import func
 import traceback
-from datetime import datetime
 
 product_bp = Blueprint('product', __name__)
 
@@ -13,11 +12,19 @@ def calculate_weighted_average(existing_qty, existing_price, new_qty, new_price)
         return 0  # Avoid division by zero
     return ((existing_price * existing_qty) + (new_price * new_qty)) / (existing_qty + new_qty)
 
+# Function to decide the status based on stock level
+def decide_status(qty_purchased):
+    if qty_purchased == 0:
+        return "Out of Stock"
+    elif qty_purchased < 10:
+        return "Low in Stock"
+    else:
+        return "Available"
+
 # Endpoint to retrieve all products
 @product_bp.route('/getProduct', methods=['GET'])
 def get_products():
     try:
-        # Retrieve all products from the database
         products = Product.query.all()
         return jsonify({
             "items": [product.to_formatted_dict() for product in products]
@@ -64,6 +71,7 @@ def create_product():
             existing_product.qty_purchased = total_qty
             existing_product.unit_price = weighted_unit_price
             existing_product.total_amount = total_qty * weighted_unit_price
+            existing_product.status = decide_status(total_qty)  # Set status based on stock level
 
             db.session.commit()
             return jsonify({"message": "Product updated successfully"}), 200
@@ -73,6 +81,7 @@ def create_product():
             qty_purchased = data['qty_purchased']
             unit_price = data['unit_price']
 
+            # Create the product with the decided status
             product = Product(
                 product_name=data['product_name'],
                 category=data['category'],
@@ -80,7 +89,8 @@ def create_product():
                 unit_price=unit_price,
                 total_amount=qty_purchased * unit_price,
                 supplier=data['supplier'],
-                image=data.get('image')  # Optional
+                image=data.get('image'),  # Optional
+                status=decide_status(qty_purchased)  # Set status based on stock level
             )
             db.session.add(product)
             db.session.commit()
@@ -109,6 +119,9 @@ def update_product():
         product.total_amount = data['qty_purchased'] * data['unit_price']
         product.supplier = data['supplier']
         product.image = data.get('image')
+
+        # Update product status based on new stock quantity
+        product.status = decide_status(product.qty_purchased)
 
         db.session.commit()
         return jsonify({"message": "Product updated successfully"}), 200
@@ -164,40 +177,37 @@ def get_stock_updates():
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500
 
-# Endpoint to get financial data for a line chart (revenue vs expenses)
-@finance_bp.route('/finances', methods=['GET'])
+# New endpoint to get financial data for a line chart (revenue vs expenses)
+@product_bp.route('/finances', methods=['GET'])
 def get_financial_data():
     try:
         # Define the months (labels)
         months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
 
-        # Query revenue and expenses for each month
-        revenue_data = []
+        # Initialize empty lists for revenue and expenses data
         expense_data = []
 
-        # Assuming that your transactions or sales data is stored in a model like "Sale" or "Expense"
-        # Replace with the actual logic to fetch revenue and expenses per month
+        # Query revenue and expenses for each month
         for month in range(1, 13):
-            # Get total revenue for the current month (replace with actual table and column logic)
-            revenue = db.session.query(func.sum(Product.total_amount)).filter(
-                func.extract('month', Product.last_updated) == month
-            ).scalar() or 0
-
+            
             # Get total expenses for the current month (replace with actual table and column logic)
             expenses = db.session.query(func.sum(Product.unit_price * Product.qty_purchased)).filter(
                 func.extract('month', Product.last_updated) == month
             ).scalar() or 0
 
-            revenue_data.append(revenue)
             expense_data.append(expenses)
 
+        # Return the financial data
         return jsonify({
             "finances": {
                 "labels": months,
-                "revenue": revenue_data,
                 "expenses": expense_data
             }
         }), 200
 
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        # Return error details to help debug
+        return jsonify({
+            "error": "An error occurred while processing financial data.",
+            "details": str(e)
+        }), 500
