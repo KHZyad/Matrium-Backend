@@ -28,11 +28,19 @@ def create_recipe(name, recipe_type, product_name, date_created):
         created_at=datetime.strptime(date_created, '%Y-%m-%d')
     )
 
+def extract_product_id(stock_id):
+    """Extract product_id from the stock_id."""
+    try:
+        return int(stock_id.split('-')[-1].lstrip('0'))
+    except (IndexError, ValueError):
+        raise ValueError(f"Invalid stock ID format: {stock_id}")
+
 def create_recipe_ingredient(recipe_id, ingredient_data):
     """Create a new RecipeIngredient instance."""
+    product_id = extract_product_id(ingredient_data['stockId'])
     return RecipeIngredient(
         recipe_id=recipe_id,
-        product_id=ingredient_data['stockId'],
+        product_id=product_id,
         quantity=float(ingredient_data['quantity'])
     )
 
