@@ -2,19 +2,22 @@ from flask import Flask
 from flask_cors import CORS
 from app.models.db import db, init_db 
 from app.routes.recipe_routes import recipe_routes
-from app.routes import product_routes
-from app.routes.user_routes import user_routes.py
-
+from app.routes.product_routes import product_bp as product_routes
+from app.routes.user_routes import user_bp as user_routes
 
 app = Flask(__name__)
-CORS(app, resources={r"/*": {"origins": "*"}}) 
+CORS(app, resources={r"/*": {"origins": "*"}})
 
-
-app.config['SQLALCHEMY_DATABASE_URI'] = ('mysql+pymysql://avnadmin:AVNS_64D7XhVDVS5mweyqAHs@mysql-615390b-matrium-24.h.aivencloud.com:21017/mrp' )
+# Database configuration
+app.config['SQLALCHEMY_DATABASE_URI'] = (
+    'mysql+pymysql://avnadmin:AVNS_64D7XhVDVS5mweyqAHs@mysql-615390b-matrium-24.h.aivencloud.com:21017/mrp'
+)
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False  
 
+# Initialize the database
 init_db(app)
 
+# Register blueprints
 app.register_blueprint(recipe_routes, url_prefix='/')
 app.register_blueprint(product_routes, url_prefix='/')
 app.register_blueprint(user_routes, url_prefix='/')
