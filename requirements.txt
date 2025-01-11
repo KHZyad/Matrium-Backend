@@ -1,7 +1,7 @@
-Flask==2.3.3
+Flask==3.1.0
 Flask-SQLAlchemy==3.0.5
 mysql-connector-python==8.0.33
-Flask-Migrate==4.0.5
+Flask-Migrate==4.0.7
 Flask-Cors==3.0.10
-pymysql
-gunicorn
+PyMySQL==1.0.3
+gunicorn==20.1.0
