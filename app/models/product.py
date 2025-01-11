@@ -10,7 +10,7 @@ class Product(db.Model):
     unit_price = db.Column(db.Float, nullable=False)
     total_amount = db.Column(db.Float, nullable=False)
     supplier = db.Column(db.String(100), nullable=False)
-    status = db.Column(db.String(50))
+    status = db.Column(db.String(50), default="In stock")
     image = db.Column(db.String(255))
     last_updated = db.Column(db.DateTime, default=db.func.now(), onupdate=db.func.now())
 
