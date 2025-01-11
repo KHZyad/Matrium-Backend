@@ -5,7 +5,7 @@ from sqlalchemy import func
 import traceback
 from app.models.delivery import Delivery, DeliveryProduct
 from datetime import datetime
-#hope it will work
+#hope it will work!
 
 
 product_bp = Blueprint('product', __name__)
