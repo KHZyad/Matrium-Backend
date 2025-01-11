@@ -9,7 +9,6 @@ class Recipe(db.Model):
     product_name = db.Column(db.String(255), nullable=False)
     type = db.Column(db.Enum('fixed', 'variable'), nullable=False)
     total_price = db.Column(db.Numeric(10, 2), default=0.00)
-    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))  
-    created_by = db.Column(db.Integer, db.ForeignKey('users.user_id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
 
-    user = db.relationship('User', backref='recipes')
+    # The user reference has been removed along with the 'created_by' column
