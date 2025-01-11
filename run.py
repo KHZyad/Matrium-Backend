@@ -3,6 +3,8 @@ from flask_cors import CORS
 from app.models.db import db, init_db 
 from app.routes.recipe_routes import recipe_routes
 from app.routes import product_routes
+from app.routes import user_routes.py
+
 
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}}) 
@@ -15,6 +17,7 @@ init_db(app)
 
 app.register_blueprint(recipe_routes, url_prefix='/')
 app.register_blueprint(product_routes, url_prefix='/')
+app.register_blueprint(user_routes, url_prefix='/')
 
 @app.route('/')
 def home():
