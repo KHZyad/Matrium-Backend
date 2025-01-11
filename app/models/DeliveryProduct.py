@@ -1,5 +1,4 @@
 from app.models.db import db
-#DeliveryProduct
 
 class DeliveryProduct(db.Model):
     __tablename__ = 'delivery_product'
