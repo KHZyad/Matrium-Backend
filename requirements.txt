@@ -4,3 +4,4 @@ mysql-connector-python==8.0.33
 Flask-Migrate==4.0.5
 Flask-Cors==3.0.10
 pymysql
+gunicorn
