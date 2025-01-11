@@ -164,20 +164,19 @@ def get_stock_updates():
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500
 
-
-
-# New endpoint to get financial data for a line chart (revenue vs expenses)
-@product_bp.route('/finances', methods=['GET'])
+# Endpoint to get financial data for a line chart (revenue vs expenses)
+@finance_bp.route('/finances', methods=['GET'])
 def get_financial_data():
     try:
         # Define the months (labels)
         months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
 
-        # Initialize empty lists for revenue and expenses data
+        # Query revenue and expenses for each month
         revenue_data = []
         expense_data = []
 
-        # Query revenue and expenses for each month
+        # Assuming that your transactions or sales data is stored in a model like "Sale" or "Expense"
+        # Replace with the actual logic to fetch revenue and expenses per month
         for month in range(1, 13):
             # Get total revenue for the current month (replace with actual table and column logic)
             revenue = db.session.query(func.sum(Product.total_amount)).filter(
@@ -192,7 +191,6 @@ def get_financial_data():
             revenue_data.append(revenue)
             expense_data.append(expenses)
 
-        # Return the financial data
         return jsonify({
             "finances": {
                 "labels": months,
@@ -202,8 +200,4 @@ def get_financial_data():
         }), 200
 
     except Exception as e:
-        # Return error details to help debug
-        return jsonify({
-            "error": "An error occurred while processing financial data.",
-            "details": str(e)
-        }), 500
+        return jsonify({"error": str(e)}), 500
