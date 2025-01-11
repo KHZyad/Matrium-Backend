@@ -211,3 +211,52 @@ def use_recipe(recipe_id):
         db.session.rollback()
         traceback.print_exc()
         return jsonify({"status": "error", "message": str(e)}), 500
+
+@recipe_routes.route('/updateRecipe/<int:recipe_id>', methods=['PUT'])
+def update_recipe(recipe_id):
+    try:
+        data = request.json
+        is_valid, error_message = validate_recipe_data(data)
+        if not is_valid:
+            return jsonify({"status": "error", "message": error_message}), 400
+
+        # Fetch the existing recipe
+        recipe = db.session.query(Recipe).filter_by(recipe_id=recipe_id).first()
+        if not recipe:
+            return jsonify({"status": "error", "message": "Recipe not found."}), 404
+
+        # Update the recipe fields
+        recipe.name = data['name']
+        recipe.product_name = data['productName']
+        recipe.type = data['type']
+        recipe.created_at = datetime.strptime(data['dateCreated'], '%Y-%m-%d')
+
+        # Clear existing ingredients
+        db.session.query(RecipeIngredient).filter_by(recipe_id=recipe_id).delete()
+
+        # Add updated ingredients to the recipe
+        for ingredient in data['ingredients']:
+            new_recipe_ingredient = create_recipe_ingredient(recipe.recipe_id, ingredient)
+            db.session.add(new_recipe_ingredient)
+
+        # Calculate total price and quantity for the updated recipe
+        total_price, total_quantity = calculate_total_price_and_quantity(data['ingredients'])
+        unit_price = total_price / total_quantity if total_quantity else 0
+
+        # Update the final product associated with this recipe
+        final_product = db.session.query(Product).filter_by(product_name=recipe.product_name).first()
+        if final_product:
+            final_product.unit_price = unit_price
+            final_product.total_amount = total_price
+        else:
+            final_product = create_final_product(recipe.product_name, unit_price, total_price)
+            db.session.add(final_product)
+
+        db.session.commit()
+
+        return jsonify({"status": "success", "message": "Recipe updated successfully."}), 200
+    except Exception as e:
+        db.session.rollback()
+        traceback.print_exc()
+        return jsonify({"status": "error", "message": str(e)}), 500
+
