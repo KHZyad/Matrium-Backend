@@ -139,3 +139,27 @@ def get_analytics():
     except Exception as e:
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500
+
+# Endpoint to get stock levels for a bar chart
+@product_bp.route('/stockUpdates', methods=['GET'])
+def get_stock_updates():
+    try:
+        # Retrieve all products to get their names and quantities
+        products = Product.query.all()
+
+        # Prepare the labels (product names) and stock levels (quantities)
+        labels = [product.product_name for product in products]
+        stock_levels = [product.qty_purchased for product in products]
+
+        # Return the data in the required format
+        return jsonify({
+            "stockUpdates": {
+                "labels": labels,
+                "stockLevels": stock_levels
+            }
+        }), 200
+
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+
