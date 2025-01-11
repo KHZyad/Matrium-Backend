@@ -6,7 +6,7 @@ from app.models.product import Product
 from datetime import datetime
 import traceback
 
-# Define the Blueprint
+# Define the Blueprint for recipe
 recipe_routes = Blueprint('recipes', __name__)
 
 # Helper functions
