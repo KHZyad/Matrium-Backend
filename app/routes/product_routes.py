@@ -3,6 +3,7 @@ from app.models.product import Product
 from app.models.db import db
 from sqlalchemy import func
 import traceback
+from datetime import datetime
 
 product_bp = Blueprint('product', __name__)
 
@@ -161,5 +162,43 @@ def get_stock_updates():
 
     except Exception as e:
         traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+
+# Endpoint to get financial data for a line chart (revenue vs expenses)
+@finance_bp.route('/finances', methods=['GET'])
+def get_financial_data():
+    try:
+        # Define the months (labels)
+        months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+
+        # Query revenue and expenses for each month
+        revenue_data = []
+        expense_data = []
+
+        # Assuming that your transactions or sales data is stored in a model like "Sale" or "Expense"
+        # Replace with the actual logic to fetch revenue and expenses per month
+        for month in range(1, 13):
+            # Get total revenue for the current month (replace with actual table and column logic)
+            revenue = db.session.query(func.sum(Product.total_amount)).filter(
+                func.extract('month', Product.last_updated) == month
+            ).scalar() or 0
+
+            # Get total expenses for the current month (replace with actual table and column logic)
+            expenses = db.session.query(func.sum(Product.unit_price * Product.qty_purchased)).filter(
+                func.extract('month', Product.last_updated) == month
+            ).scalar() or 0
+
+            revenue_data.append(revenue)
+            expense_data.append(expenses)
+
+        return jsonify({
+            "finances": {
+                "labels": months,
+                "revenue": revenue_data,
+                "expenses": expense_data
+            }
+        }), 200
+
+    except Exception as e:
         return jsonify({"error": str(e)}), 500
 
