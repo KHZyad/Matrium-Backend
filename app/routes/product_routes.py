@@ -174,22 +174,29 @@ def get_financial_data():
         months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
 
         # Initialize empty lists for revenue and expenses data
+        revenue_data = []
         expense_data = []
 
         # Query revenue and expenses for each month
         for month in range(1, 13):
+            # Get total revenue for the current month (replace with actual table and column logic)
+            revenue = db.session.query(func.sum(Product.total_amount)).filter(
+                func.extract('month', Product.last_updated) == month
+            ).scalar() or 0
 
             # Get total expenses for the current month (replace with actual table and column logic)
             expenses = db.session.query(func.sum(Product.unit_price * Product.qty_purchased)).filter(
                 func.extract('month', Product.last_updated) == month
             ).scalar() or 0
 
+            revenue_data.append(revenue)
             expense_data.append(expenses)
 
         # Return the financial data
         return jsonify({
             "finances": {
                 "labels": months,
+                "revenue": revenue_data,
                 "expenses": expense_data
             }
         }), 200
