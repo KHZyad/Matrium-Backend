@@ -25,6 +25,7 @@ def decide_status(qty_purchased):
 @product_bp.route('/getProduct', methods=['GET'])
 def get_products():
     try:
+        # Retrieve all products from the database
         products = Product.query.all()
         return jsonify({
             "items": [product.to_formatted_dict() for product in products]
@@ -120,8 +121,8 @@ def update_product():
         product.supplier = data['supplier']
         product.image = data.get('image')
 
-        # Update product status based on new stock quantity
-        product.status = decide_status(product.qty_purchased)
+        # Update status based on new quantity
+        product.status = decide_status(data['qty_purchased'])
 
         db.session.commit()
         return jsonify({"message": "Product updated successfully"}), 200
