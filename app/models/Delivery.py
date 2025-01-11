@@ -4,7 +4,7 @@ from datetime import datetime
 class Delivery(db.Model):
     __tablename__ = 'delivery'
 
-    delivery_id = db.Column(db.Integer, primary_key=True)
+    delivery_id = db.Column(db.BigInteger, primary_key=True)
     order_id = db.Column(db.Integer, nullable=False)
     customer_name = db.Column(db.String(255), nullable=False)
     delivery_address = db.Column(db.String(255), nullable=False)
