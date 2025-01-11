@@ -1,4 +1,3 @@
-from datetime import datetime
 from flask import Blueprint, request, jsonify
 from app.models.product import Product
 from app.models.db import db
