@@ -131,6 +131,7 @@ def get_recipes():
             result.append({
                 "id": recipe.recipe_id,
                 "name": recipe.name,
+                "product_name": recipe.product_name,
                 "type": recipe.type,
                 "ingredients": ingredients_list,
                 "totalPrice": total_price,
