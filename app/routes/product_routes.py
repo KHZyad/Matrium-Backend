@@ -187,7 +187,7 @@ def validate_delivery_data(data):
     return True, None
 
 # Create Delivery
-@delivery_routes.route('/createDelivery', methods=['POST'])
+@product_bp.route('/createDelivery', methods=['POST'])
 def create_delivery():
     try:
         data = request.json
@@ -232,7 +232,7 @@ def create_delivery():
         return jsonify({"status": "error", "message": str(e)}), 500
 
 # Get all deliveries
-@delivery_routes.route('/getDeliveries', methods=['GET'])
+@product_bp.route('/getDeliveries', methods=['GET'])
 def get_deliveries():
     try:
         deliveries = Delivery.query.all()
@@ -265,7 +265,7 @@ def get_deliveries():
         return jsonify({"status": "error", "message": str(e)}), 500
 
 # Update Delivery
-@delivery_routes.route('/updateDelivery/<int:delivery_id>', methods=['PUT'])
+@product_bp.route('/updateDelivery/<int:delivery_id>', methods=['PUT'])
 def update_delivery(delivery_id):
     try:
         data = request.json
@@ -287,7 +287,7 @@ def update_delivery(delivery_id):
         return jsonify({"status": "error", "message": str(e)}), 500
 
 # Delete Delivery
-@delivery_routes.route('/deleteDelivery/<int:delivery_id>', methods=['DELETE'])
+@product_bp.route('/deleteDelivery/<int:delivery_id>', methods=['DELETE'])
 def delete_delivery(delivery_id):
     try:
         delivery = Delivery.query.get(delivery_id)
