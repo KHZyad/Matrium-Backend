@@ -3,7 +3,6 @@ from flask_cors import CORS
 from app.models.db import db, init_db
 from app.routes.recipe_routes import recipe_routes
 from app.routes.product_routes import product_routes
-from app.routes.delivery_routes import delivery_routes
 
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}})
@@ -18,7 +17,6 @@ init_db(app)
 # Register blueprints with unique prefixes
 app.register_blueprint(recipe_routes, url_prefix='/recipes')
 app.register_blueprint(product_routes, url_prefix='/products')
-app.register_blueprint(delivery_routes, url_prefix='/deliveries')
 
 print("Blueprints registered successfully!")
 
