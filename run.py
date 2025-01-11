@@ -20,7 +20,7 @@ app.register_blueprint(product_routes, url_prefix='/')
 
 @app.route('/')
 def home():
-    return "Welcome to the Flask App!"
+    return "Matrium!"
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5002)
