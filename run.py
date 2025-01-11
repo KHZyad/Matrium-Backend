@@ -3,7 +3,7 @@ from flask_cors import CORS
 from app.models.db import db, init_db 
 from app.routes.recipe_routes import recipe_routes
 from app.routes import product_routes
-from app.routes import user_routes.py
+from app.routes import user_routes
 
 
 app = Flask(__name__)
