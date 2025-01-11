@@ -12,7 +12,7 @@ recipe_routes = Blueprint('recipes', __name__)
 # Helper functions
 def validate_recipe_data(data):
     """Validate the incoming recipe data."""
-    required_fields = ['name', 'productName', 'type', 'ingredients', 'totalPrice', 'category']
+    required_fields = ['name', 'productName', 'type', 'ingredients']
     for field in required_fields:
         if not data.get(field):
             return False, f"Missing required field: {field}"
@@ -42,11 +42,11 @@ def calculate_total_price_and_quantity(ingredients):
     total_quantity = sum(float(ing['quantity']) for ing in ingredients)
     return total_price, total_quantity
 
-def create_final_product(product_name, unit_price, total_price, category):
+def create_final_product(product_name, unit_price, total_price):
     """Create a new Product instance for the final product."""
     return Product(
         product_name=product_name,
-        category=category,
+        category="Final Material",
         qty_purchased=0,  # Default to 0 for the final product
         unit_price=unit_price,
         total_amount=total_price,
@@ -69,7 +69,6 @@ def add_recipe():
         recipe_type = data['type']
         ingredients = data['ingredients']
         date_created = data.get('dateCreated', datetime.utcnow().strftime('%Y-%m-%d'))
-        category = data['category']
 
         # Create the recipe
         new_recipe = create_recipe(name, recipe_type, product_name, date_created)
@@ -84,7 +83,7 @@ def add_recipe():
         # Calculate total price and create the final product
         total_price, total_quantity = calculate_total_price_and_quantity(ingredients)
         unit_price = total_price / total_quantity if total_quantity else 0
-        final_product = create_final_product(product_name, unit_price, total_price, category)
+        final_product = create_final_product(product_name, unit_price, total_price)
         db.session.add(final_product)
 
         db.session.commit()
